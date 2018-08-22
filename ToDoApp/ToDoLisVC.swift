@@ -12,8 +12,14 @@ class ToDoListVC: UITableViewController {
 
     var itemArray = ["PE Class", "Get Hamburger", "Clean Up the House "]
     
+    let defaults = UserDefaults.standard
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        if let items = defaults.array(forKey: "ToDoListArray") as? [String]{
+            itemArray = items
+        }
     }
 
     //MARK: TableView DataSource
@@ -61,6 +67,8 @@ class ToDoListVC: UITableViewController {
             // here is what will happen once the user clicks the Add Item button
 
             self.itemArray.append(textField.text!)
+            
+            self.defaults.set(self.itemArray, forKey: "ToDoListArray")
             self.tableView.reloadData()
         }
         
