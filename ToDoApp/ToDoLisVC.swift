@@ -16,33 +16,36 @@ class ToDoListVC: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        
-        let newItem = Item()
-        newItem.title = "Find Me"
-        itemArray.append(newItem)
-        
-        let newItem2 = Item()
-        newItem2.title = "University"
-        itemArray.append(newItem2)
-        
-        let newItem3 = Item()
-        newItem3.title = "OutLook Drive"
-        itemArray.append(newItem3)
-        
-        if let items = defaults.array(forKey: "ToDoListArray") as? [Item]{
+        fetchPersistedData()
+    }
+    
+    private func fetchPersistedData() {
+        let testFromDefaults = defaults.object([Item].self, with: "ToDoListArray")
+
+        if let items = testFromDefaults {
             itemArray = items
         }
     }
+    
+    private func persistData(_ toDoTitle: String?) {
+        let newItem = Item()
+        guard let title = toDoTitle else { return }
+        
+        if title != self.itemArray.first?.title {
+            newItem.title = title
+            self.itemArray.append(newItem)
+        } else {
+            print("existing Name")
+        }
+        
+        self.defaults.set(object: self.itemArray, forKey:  "ToDoListArray")
+    }
 
     //MARK: TableView DataSource
-    
-    // numberOfRows
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return itemArray.count
     }
     
-    // cellForRow
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
         
@@ -53,16 +56,7 @@ class ToDoListVC: UITableViewController {
         // TERNARY OPERATOR ==>
         // value = condition ? valueIfTrue : valueIfFalse
         
-        cell.accessoryType = item.done ? .checkmark :.none
-        
-        // NORMAL WAY
-//        if item.done == true {
-//            cell.accessoryType = .checkmark
-//        }
-//        else
-//        {
-//            cell.accessoryType = .none
-//        }
+        cell.accessoryType = item.done ? .checkmark : .none
         
         return cell
     }
@@ -70,13 +64,15 @@ class ToDoListVC: UITableViewController {
     //MARK: TableView Delegate Methods
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        //print(indexPath.row)
         
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
         
         tableView.reloadData()
         
         tableView.deselectRow(at: indexPath, animated: true)
+        print(self.itemArray.first?.done)
+        // persist checkmark state
+        self.defaults.set(object: self.itemArray, forKey:  "ToDoListArray")
     }
     
     
@@ -90,13 +86,8 @@ class ToDoListVC: UITableViewController {
         
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             // here is what will happen once the user clicks the Add Item button
-
-            let newItem2 = Item()
-            newItem2.title = textField.text!
+            self.persistData(textField.text)
             
-            self.itemArray.append(newItem2)
-            
-            self.defaults.set(self.itemArray, forKey: "ToDoListArray")
             self.tableView.reloadData()
         }
         
@@ -115,3 +106,14 @@ class ToDoListVC: UITableViewController {
 
 }
 
+extension UserDefaults {
+    func object<T: Codable>(_ type: T.Type, with key: String, usingDecoder decoder: JSONDecoder = JSONDecoder()) -> T? {
+        guard let data = self.value(forKey: key) as? Data else { return nil }
+        return try? decoder.decode(type.self, from: data)
+    }
+
+    func set<T: Codable>(object: T, forKey key: String, usingEncoder encoder: JSONEncoder = JSONEncoder()) {
+        let data = try? encoder.encode(object)
+        self.set(data, forKey: key)
+    }
+}
